@@ -1,0 +1,995 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HemoAI Blood Analysis</title>
+    <style>
+        :root {
+            --primary-color: #2c3e50;
+            --secondary-color: #3498db;
+            --accent-color: #e74c3c;
+            --light-color: #ecf0f1;
+            --dark-color: #2c3e50;
+            --success-color: #27ae60;
+            --warning-color: #f39c12;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: #f5f7fa;
+            color: #333;
+            line-height: 1.6;
+        }
+
+        .app-container {
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+
+        .app-header {
+            background-color: var(--primary-color);
+            color: white;
+            padding: 2rem;
+            text-align: center;
+        }
+
+        .app-header h1 {
+            margin-bottom: 0.5rem;
+            font-size: 2.2rem;
+        }
+
+        .app-header p {
+            opacity: 0.9;
+            font-size: 1.1rem;
+        }
+
+        .main-content {
+            flex: 1;
+            padding: 2rem;
+            max-width: 1200px;
+            margin: 0 auto;
+            width: 100%;
+        }
+
+        .app-footer {
+            background-color: var(--dark-color);
+            color: white;
+            text-align: center;
+            padding: 1rem;
+            margin-top: auto;
+        }
+
+        .upload-section {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            padding: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .preview-container {
+            width: 100%;
+            height: 300px;
+            margin-bottom: 1.5rem;
+            border: 2px dashed #ddd;
+            border-radius: 6px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .image-preview {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+        }
+
+        .upload-placeholder {
+            text-align: center;
+            cursor: pointer;
+            color: #777;
+            padding: 1rem;
+        }
+
+        .upload-placeholder span {
+            display: block;
+            margin-top: 1rem;
+            font-size: 1.1rem;
+        }
+
+        .input-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .input-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+            color: var(--dark-color);
+        }
+
+        .input-group input {
+            width: 100%;
+            padding: 0.8rem;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 1rem;
+        }
+
+        .analyze-button {
+            background-color: var(--secondary-color);
+            color: white;
+            border: none;
+            padding: 1rem 2rem;
+            font-size: 1rem;
+            border-radius: 4px;
+            cursor: pointer;
+            width: 100%;
+            font-weight: 600;
+            transition: background-color 0.3s;
+        }
+
+        .analyze-button:hover {
+            background-color: #2980b9;
+        }
+
+        .analyze-button:disabled {
+            background-color: #95a5a6;
+            cursor: not-allowed;
+        }
+
+        .report-section {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            padding: 2rem;
+        }
+
+        .report-section h2 {
+            color: var(--primary-color);
+            margin-bottom: 1.5rem;
+            border-bottom: 2px solid var(--light-color);
+            padding-bottom: 0.5rem;
+        }
+
+        .report-content {
+            margin-bottom: 2rem;
+        }
+
+        .report-content p {
+            margin-bottom: 0.5rem;
+            padding: 0.3rem 0;
+        }
+
+        .report-title {
+            font-weight: 600;
+            color: var(--primary-color);
+            font-size: 1.1rem;
+        }
+
+        .recommendation-title {
+            font-weight: 600;
+            color: var(--accent-color);
+            margin-top: 1rem !important;
+        }
+
+        .chat-container {
+            margin-top: 2rem;
+        }
+
+        .chat-container h3 {
+            color: var(--primary-color);
+            margin-bottom: 1rem;
+        }
+
+        .chat-messages {
+            height: 300px;
+            overflow-y: auto;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            background-color: #f9f9f9;
+        }
+
+        .message {
+            margin-bottom: 1rem;
+            padding: 0.8rem;
+            border-radius: 6px;
+            max-width: 80%;
+        }
+
+        .message.user {
+            background-color: var(--light-color);
+            margin-left: auto;
+            border: 1px solid #ddd;
+        }
+
+        .message.assistant {
+            background-color: var(--secondary-color);
+            color: white;
+            margin-right: auto;
+        }
+
+        .message.system {
+            background-color: #f0f0f0;
+            border-left: 4px solid var(--primary-color);
+            margin: 1rem 0;
+            font-size: 0.9rem;
+        }
+
+        .chat-input {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .chat-input input {
+            flex: 1;
+            padding: 0.8rem;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 1rem;
+        }
+
+        .chat-input button {
+            background-color: var(--secondary-color);
+            color: white;
+            border: none;
+            padding: 0 1.5rem;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+
+        @media (max-width: 768px) {
+            .main-content {
+                padding: 1rem;
+            }
+            
+            .app-header h1 {
+                font-size: 1.8rem;
+            }
+            
+            .preview-container {
+                height: 250px;
+            }
+            
+            .message {
+                max-width: 90%;
+            }
+        }
+
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <header class="app-header">
+            <h1>HemoAI Blood Analysis</h1>
+            <p>Upload your blood sample image for instant AI-powered analysis</p>
+        </header>
+
+        <div class="main-content">
+            <div class="upload-section">
+                <div class="preview-container" id="previewContainer">
+                    <div class="upload-placeholder" onclick="document.getElementById('fileInput').click()">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                            <polyline points="17 8 12 3 7 8"></polyline>
+                            <line x1="12" y1="3" x2="12" y2="15"></line>
+                        </svg>
+                        <span>Click to upload blood sample image</span>
+                        <input type="file" id="fileInput" onchange="handleFileChange(event)" accept="image/*" style="display: none;">
+                    </div>
+                </div>
+
+                <div class="input-group">
+                    <label for="phone">WhatsApp Number:</label>
+                    <input type="tel" id="phone" placeholder="+1234567890" oninput="updatePhoneNumber(this.value)">
+                </div>
+
+                <div class="input-group">
+                    <label for="userId">Patient ID (optional):</label>
+                    <input type="text" id="userId" placeholder="Unique identifier" oninput="updateUserId(this.value)">
+                </div>
+
+                <button id="analyzeButton" onclick="handleUpload()" disabled class="analyze-button">
+                    Analyze Sample
+                </button>
+            </div>
+
+            <div id="reportSection" class="report-section hidden">
+                <h2>Analysis Report</h2>
+                <div class="report-content" id="reportContent"></div>
+
+                <div class="chat-container">
+                    <h3>Ask About Your Results</h3>
+                    <div class="chat-messages" id="chatMessages"></div>
+                    <div class="chat-input">
+                        <input type="text" id="chatInput" placeholder="Ask about your results..." onkeypress="handleChatKeyPress(event)">
+                        <button onclick="handleSendMessage()">Send</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <footer class="app-footer">
+            <p>HemoAI - AI-powered blood analysis for better health outcomes</p>
+        </footer>
+    </div>
+
+    <script>
+        // Application state
+        const state = {
+            file: null,
+            preview: null,
+            phoneNumber: '',
+            userId: '',
+            isAnalyzing: false,
+            report: null,
+            chatMessage: '',
+            conversation: []
+        };
+
+        // DOM elements
+        const elements = {
+            previewContainer: document.getElementById('previewContainer'),
+            analyzeButton: document.getElementById('analyzeButton'),
+            reportSection: document.getElementById('reportSection'),
+            reportContent: document.getElementById('reportContent'),
+            chatMessages: document.getElementById('chatMessages'),
+            chatInput: document.getElementById('chatInput')
+        };
+
+        // Event handlers
+        function handleFileChange(event) {
+            const file = event.target.files[0];
+            if (file) {
+                state.file = file;
+                const reader = new FileReader();
+                reader.onloadend = () => {
+                    state.preview = reader.result;
+                    renderPreview();
+                };
+                reader.readAsDataURL(file);
+                updateAnalyzeButton();
+            }
+        }
+
+        function updatePhoneNumber(value) {
+            state.phoneNumber = value;
+            updateAnalyzeButton();
+        }
+
+        function updateUserId(value) {
+            state.userId = value;
+        }
+
+        function updateAnalyzeButton() {
+            elements.analyzeButton.disabled = !(state.file && state.phoneNumber);
+        }
+
+        function renderPreview() {
+            if (state.preview) {
+                elements.previewContainer.innerHTML = `
+                    <img src="${state.preview}" alt="Preview" class="image-preview">
+                    <button onclick="clearImage()" style="position: absolute; top: 10px; right: 10px; background: rgba(0,0,0,0.5); color: white; border: none; border-radius: 50%; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; cursor: pointer;">
+                        ×
+                    </button>
+                `;
+            } else {
+                elements.previewContainer.innerHTML = `
+                    <div class="upload-placeholder" onclick="document.getElementById('fileInput').click()">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                            <polyline points="17 8 12 3 7 8"></polyline>
+                            <line x1="12" y1="3" x2="12" y2="15"></line>
+                        </svg>
+                        <span>Click to upload blood sample image</span>
+                    </div>
+                    <input type="file" id="fileInput" onchange="handleFileChange(event)" accept="image/*" style="display: none;">
+                `;
+            }
+        }
+
+        function clearImage() {
+            state.file = null;
+            state.preview = null;
+            renderPreview();
+            updateAnalyzeButton();
+        }
+
+        async function handleUpload() {
+            if (!state.file || !state.phoneNumber) {
+                alert('Please select an image and provide your phone number');
+                return;
+            }
+
+            state.isAnalyzing = true;
+            state.report = null;
+            elements.analyzeButton.disabled = true;
+            elements.analyzeButton.textContent = 'Analyzing...';
+
+            // Simulate API call
+            setTimeout(() => {
+                checkForReport(state.userId || state.phoneNumber);
+            }, 3000);
+        }
+
+        function checkForReport(userIdentifier) {
+            // Simulate getting report from backend
+            state.report = `🔬 Blood Analysis Report for ${userIdentifier}\n\n• Healthy RBCs: 850\n• WBCs: 45\n• Platelets: 210\n• Abnormal Findings:\n  - Leukemia Cells: 0\n  - Malaria Parasites: 0\n  - Sickle Cells: 12\n\n💡 Clinical Recommendations:\nMild sickle cell presence detected. Recommend:\n1. Hydration therapy\n2. Pain management plan\n3. Follow-up in 2 weeks`;
+            
+            state.conversation = [{ role: 'system', content: state.report }];
+            renderReport();
+            
+            state.isAnalyzing = false;
+            elements.analyzeButton.disabled = false;
+            elements.analyzeButton.textContent = 'Analyze Sample';
+        }
+
+        function renderReport() {
+            elements.reportSection.classList.remove('hidden');
+            elements.reportContent.innerHTML = state.report
+                .split('\n')
+                .map(line => {
+                    if (line.includes('🔬')) {
+                        return `<p class="report-title">${line}</p>`;
+                    } else if (line.includes('💡')) {
+                        return `<p class="recommendation-title">${line}</p>`;
+                    }
+                    return `<p>${line}</p>`;
+                })
+                .join('');
+            
+            renderConversation();
+        }
+
+        function handleChatKeyPress(event) {
+            if (event.key === 'Enter') {
+                handleSendMessage();
+            }
+        }
+
+        function handleSendMessage() {
+            const message = elements.chatInput.value.trim();
+            if (!message) return;
+
+            state.chatMessage = message;
+            elements.chatInput.value = '';
+            
+            // Add user message to conversation
+            state.conversation.push({ role: 'user', content: message });
+            renderConversation();
+            
+            // Simulate AI response
+            setTimeout(() => {
+                const aiResponse = `Based on your report showing 12 sickle cells, I recommend:\n\n1. Increase fluid intake to 3L/day\n2. Take folic acid supplements\n3. Monitor for pain crises\n\nWould you like me to connect you with a hematologist?`;
+                state.conversation.push({ role: 'assistant', content: aiResponse });
+                renderConversation();
+            }, 1000);
+        }
+
+        function renderConversation() {
+            elements.chatMessages.innerHTML = state.conversation
+                .map(msg => {
+                    const content = msg.content.split('\n').map(p => `<p>${p}</p>`).join('');
+                    return `<div class="message ${msg.role}">${content}</div>`;
+                })
+                .join('');
+            
+            // Scroll to bottom
+            elements.chatMessages.scrollTop = elements.chatMessages.scrollHeight;
+        }
+    </script>
+</body>
+</html><!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HemoAI Blood Analysis</title>
+    <style>
+        :root {
+            --primary-color: #2c3e50;
+            --secondary-color: #3498db;
+            --accent-color: #e74c3c;
+            --light-color: #ecf0f1;
+            --dark-color: #2c3e50;
+            --success-color: #27ae60;
+            --warning-color: #f39c12;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: #f5f7fa;
+            color: #333;
+            line-height: 1.6;
+        }
+
+        .app-container {
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+
+        .app-header {
+            background-color: var(--primary-color);
+            color: white;
+            padding: 2rem;
+            text-align: center;
+        }
+
+        .app-header h1 {
+            margin-bottom: 0.5rem;
+            font-size: 2.2rem;
+        }
+
+        .app-header p {
+            opacity: 0.9;
+            font-size: 1.1rem;
+        }
+
+        .main-content {
+            flex: 1;
+            padding: 2rem;
+            max-width: 1200px;
+            margin: 0 auto;
+            width: 100%;
+        }
+
+        .app-footer {
+            background-color: var(--dark-color);
+            color: white;
+            text-align: center;
+            padding: 1rem;
+            margin-top: auto;
+        }
+
+        .upload-section {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            padding: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .preview-container {
+            width: 100%;
+            height: 300px;
+            margin-bottom: 1.5rem;
+            border: 2px dashed #ddd;
+            border-radius: 6px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .image-preview {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+        }
+
+        .upload-placeholder {
+            text-align: center;
+            cursor: pointer;
+            color: #777;
+            padding: 1rem;
+        }
+
+        .upload-placeholder span {
+            display: block;
+            margin-top: 1rem;
+            font-size: 1.1rem;
+        }
+
+        .input-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .input-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+            color: var(--dark-color);
+        }
+
+        .input-group input {
+            width: 100%;
+            padding: 0.8rem;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 1rem;
+        }
+
+        .analyze-button {
+            background-color: var(--secondary-color);
+            color: white;
+            border: none;
+            padding: 1rem 2rem;
+            font-size: 1rem;
+            border-radius: 4px;
+            cursor: pointer;
+            width: 100%;
+            font-weight: 600;
+            transition: background-color 0.3s;
+        }
+
+        .analyze-button:hover {
+            background-color: #2980b9;
+        }
+
+        .analyze-button:disabled {
+            background-color: #95a5a6;
+            cursor: not-allowed;
+        }
+
+        .report-section {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            padding: 2rem;
+        }
+
+        .report-section h2 {
+            color: var(--primary-color);
+            margin-bottom: 1.5rem;
+            border-bottom: 2px solid var(--light-color);
+            padding-bottom: 0.5rem;
+        }
+
+        .report-content {
+            margin-bottom: 2rem;
+        }
+
+        .report-content p {
+            margin-bottom: 0.5rem;
+            padding: 0.3rem 0;
+        }
+
+        .report-title {
+            font-weight: 600;
+            color: var(--primary-color);
+            font-size: 1.1rem;
+        }
+
+        .recommendation-title {
+            font-weight: 600;
+            color: var(--accent-color);
+            margin-top: 1rem !important;
+        }
+
+        .chat-container {
+            margin-top: 2rem;
+        }
+
+        .chat-container h3 {
+            color: var(--primary-color);
+            margin-bottom: 1rem;
+        }
+
+        .chat-messages {
+            height: 300px;
+            overflow-y: auto;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            background-color: #f9f9f9;
+        }
+
+        .message {
+            margin-bottom: 1rem;
+            padding: 0.8rem;
+            border-radius: 6px;
+            max-width: 80%;
+        }
+
+        .message.user {
+            background-color: var(--light-color);
+            margin-left: auto;
+            border: 1px solid #ddd;
+        }
+
+        .message.assistant {
+            background-color: var(--secondary-color);
+            color: white;
+            margin-right: auto;
+        }
+
+        .message.system {
+            background-color: #f0f0f0;
+            border-left: 4px solid var(--primary-color);
+            margin: 1rem 0;
+            font-size: 0.9rem;
+        }
+
+        .chat-input {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .chat-input input {
+            flex: 1;
+            padding: 0.8rem;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 1rem;
+        }
+
+        .chat-input button {
+            background-color: var(--secondary-color);
+            color: white;
+            border: none;
+            padding: 0 1.5rem;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+
+        @media (max-width: 768px) {
+            .main-content {
+                padding: 1rem;
+            }
+            
+            .app-header h1 {
+                font-size: 1.8rem;
+            }
+            
+            .preview-container {
+                height: 250px;
+            }
+            
+            .message {
+                max-width: 90%;
+            }
+        }
+
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <header class="app-header">
+            <h1>HemoAI Blood Analysis</h1>
+            <p>Upload your blood sample image for instant AI-powered analysis</p>
+        </header>
+
+        <div class="main-content">
+            <div class="upload-section">
+                <div class="preview-container" id="previewContainer">
+                    <div class="upload-placeholder" onclick="document.getElementById('fileInput').click()">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                            <polyline points="17 8 12 3 7 8"></polyline>
+                            <line x1="12" y1="3" x2="12" y2="15"></line>
+                        </svg>
+                        <span>Click to upload blood sample image</span>
+                        <input type="file" id="fileInput" onchange="handleFileChange(event)" accept="image/*" style="display: none;">
+                    </div>
+                </div>
+
+                <div class="input-group">
+                    <label for="phone">WhatsApp Number:</label>
+                    <input type="tel" id="phone" placeholder="+1234567890" oninput="updatePhoneNumber(this.value)">
+                </div>
+
+                <div class="input-group">
+                    <label for="userId">Patient ID (optional):</label>
+                    <input type="text" id="userId" placeholder="Unique identifier" oninput="updateUserId(this.value)">
+                </div>
+
+                <button id="analyzeButton" onclick="handleUpload()" disabled class="analyze-button">
+                    Analyze Sample
+                </button>
+            </div>
+
+            <div id="reportSection" class="report-section hidden">
+                <h2>Analysis Report</h2>
+                <div class="report-content" id="reportContent"></div>
+
+                <div class="chat-container">
+                    <h3>Ask About Your Results</h3>
+                    <div class="chat-messages" id="chatMessages"></div>
+                    <div class="chat-input">
+                        <input type="text" id="chatInput" placeholder="Ask about your results..." onkeypress="handleChatKeyPress(event)">
+                        <button onclick="handleSendMessage()">Send</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <footer class="app-footer">
+            <p>HemoAI - AI-powered blood analysis for better health outcomes</p>
+        </footer>
+    </div>
+
+    <script>
+        // Application state
+        const state = {
+            file: null,
+            preview: null,
+            phoneNumber: '',
+            userId: '',
+            isAnalyzing: false,
+            report: null,
+            chatMessage: '',
+            conversation: []
+        };
+
+        // DOM elements
+        const elements = {
+            previewContainer: document.getElementById('previewContainer'),
+            analyzeButton: document.getElementById('analyzeButton'),
+            reportSection: document.getElementById('reportSection'),
+            reportContent: document.getElementById('reportContent'),
+            chatMessages: document.getElementById('chatMessages'),
+            chatInput: document.getElementById('chatInput')
+        };
+
+        // Event handlers
+        function handleFileChange(event) {
+            const file = event.target.files[0];
+            if (file) {
+                state.file = file;
+                const reader = new FileReader();
+                reader.onloadend = () => {
+                    state.preview = reader.result;
+                    renderPreview();
+                };
+                reader.readAsDataURL(file);
+                updateAnalyzeButton();
+            }
+        }
+
+        function updatePhoneNumber(value) {
+            state.phoneNumber = value;
+            updateAnalyzeButton();
+        }
+
+        function updateUserId(value) {
+            state.userId = value;
+        }
+
+        function updateAnalyzeButton() {
+            elements.analyzeButton.disabled = !(state.file && state.phoneNumber);
+        }
+
+        function renderPreview() {
+            if (state.preview) {
+                elements.previewContainer.innerHTML = `
+                    <img src="${state.preview}" alt="Preview" class="image-preview">
+                    <button onclick="clearImage()" style="position: absolute; top: 10px; right: 10px; background: rgba(0,0,0,0.5); color: white; border: none; border-radius: 50%; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; cursor: pointer;">
+                        ×
+                    </button>
+                `;
+            } else {
+                elements.previewContainer.innerHTML = `
+                    <div class="upload-placeholder" onclick="document.getElementById('fileInput').click()">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                            <polyline points="17 8 12 3 7 8"></polyline>
+                            <line x1="12" y1="3" x2="12" y2="15"></line>
+                        </svg>
+                        <span>Click to upload blood sample image</span>
+                    </div>
+                    <input type="file" id="fileInput" onchange="handleFileChange(event)" accept="image/*" style="display: none;">
+                `;
+            }
+        }
+
+        function clearImage() {
+            state.file = null;
+            state.preview = null;
+            renderPreview();
+            updateAnalyzeButton();
+        }
+
+        async function handleUpload() {
+            if (!state.file || !state.phoneNumber) {
+                alert('Please select an image and provide your phone number');
+                return;
+            }
+
+            state.isAnalyzing = true;
+            state.report = null;
+            elements.analyzeButton.disabled = true;
+            elements.analyzeButton.textContent = 'Analyzing...';
+
+            // Simulate API call
+            setTimeout(() => {
+                checkForReport(state.userId || state.phoneNumber);
+            }, 3000);
+        }
+
+        function checkForReport(userIdentifier) {
+            // Simulate getting report from backend
+            state.report = `🔬 Blood Analysis Report for ${userIdentifier}\n\n• Healthy RBCs: 850\n• WBCs: 45\n• Platelets: 210\n• Abnormal Findings:\n  - Leukemia Cells: 0\n  - Malaria Parasites: 0\n  - Sickle Cells: 12\n\n💡 Clinical Recommendations:\nMild sickle cell presence detected. Recommend:\n1. Hydration therapy\n2. Pain management plan\n3. Follow-up in 2 weeks`;
+            
+            state.conversation = [{ role: 'system', content: state.report }];
+            renderReport();
+            
+            state.isAnalyzing = false;
+            elements.analyzeButton.disabled = false;
+            elements.analyzeButton.textContent = 'Analyze Sample';
+        }
+
+        function renderReport() {
+            elements.reportSection.classList.remove('hidden');
+            elements.reportContent.innerHTML = state.report
+                .split('\n')
+                .map(line => {
+                    if (line.includes('🔬')) {
+                        return `<p class="report-title">${line}</p>`;
+                    } else if (line.includes('💡')) {
+                        return `<p class="recommendation-title">${line}</p>`;
+                    }
+                    return `<p>${line}</p>`;
+                })
+                .join('');
+            
+            renderConversation();
+        }
+
+        function handleChatKeyPress(event) {
+            if (event.key === 'Enter') {
+                handleSendMessage();
+            }
+        }
+
+        function handleSendMessage() {
+            const message = elements.chatInput.value.trim();
+            if (!message) return;
+
+            state.chatMessage = message;
+            elements.chatInput.value = '';
+            
+            // Add user message to conversation
+            state.conversation.push({ role: 'user', content: message });
+            renderConversation();
+            
+            // Simulate AI response
+            setTimeout(() => {
+                const aiResponse = `Based on your report showing 12 sickle cells, I recommend:\n\n1. Increase fluid intake to 3L/day\n2. Take folic acid supplements\n3. Monitor for pain crises\n\nWould you like me to connect you with a hematologist?`;
+                state.conversation.push({ role: 'assistant', content: aiResponse });
+                renderConversation();
+            }, 1000);
+        }
+
+        function renderConversation() {
+            elements.chatMessages.innerHTML = state.conversation
+                .map(msg => {
+                    const content = msg.content.split('\n').map(p => `<p>${p}</p>`).join('');
+                    return `<div class="message ${msg.role}">${content}</div>`;
+                })
+                .join('');
+            
+            // Scroll to bottom
+            elements.chatMessages.scrollTop = elements.chatMessages.scrollHeight;
+        }
+    </script>
+</body>
+</html>
