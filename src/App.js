@@ -12,4 +12,4 @@ const App = () => {
   );
 };
 
-export default App;  // ✅ Clean export
+export default App;

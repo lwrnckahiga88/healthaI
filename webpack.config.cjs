@@ -1,86 +1,119 @@
 const path = require('path');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
-const webpack = require('webpack'); // Import webpack
+const { CleanWebpackPlugin } = require('clean-webpack-plugin');
+const WorkboxPlugin = require('workbox-webpack-plugin');
+const CopyWebpackPlugin = require('copy-webpack-plugin');
+const WebpackPwaManifest = require('webpack-pwa-manifest');
+const webpack = require('webpack');
+const { InjectManifest } = require('workbox-webpack-plugin');
+
 
 module.exports = {
-  entry: './src/index.js', // This is the entry point for your app
+  mode: process.env.NODE_ENV || 'development',
+  entry: './src/index.js',
   output: {
-    filename: 'bundle.js',
+    filename: '[name].[contenthash].js',
     path: path.resolve(__dirname, 'dist'),
-    clean: true, // Clean the output directory before emit
+    clean: true,
   },
   module: {
     rules: [
       {
-        test: /\.m?js$/,
-        resolve: { fullySpecified: false }, // Allow incomplete import paths
+        test: /\.js$/,
+        exclude: /node_modules/,
+        use: {
+          loader: 'babel-loader',
+          options: {
+            presets: [
+              ['@babel/preset-env', { targets: 'defaults' }]
+            ]
+          }
+        }
       },
       {
-        test: /\.css$/, // Process CSS files
+        test: /\.css$/i,
         use: ['style-loader', 'css-loader'],
       },
       {
-        test: /\.(png|svg|jpg|jpeg|gif)$/, // Process image files
+        test: /\.(png|svg|jpg|jpeg|gif|ico)$/i,
         type: 'asset/resource',
       },
       {
-        test: /\.onnx$/, // Add rule for ONNX files
-        type: 'asset/resource', // Treat ONNX as a static asset
-        generator: {
-          filename: 'models/[name][ext][query]', // Output path for the model file
-        },
-      },
-      {
-        test: /\.wasm$/, // Handle WASM files
-        type: 'asset/resource', // Treat WASM as a static asset
-        generator: {
-          filename: 'wasm/[name][ext][query]', // Output path for the WASM file
-        },
+        test: /\.(woff|woff2|eot|ttf|otf)$/i,
+        type: 'asset/resource',
       },
     ],
   },
   plugins: [
+    new CleanWebpackPlugin(),
     new HtmlWebpackPlugin({
-      template: './public/index.html', // Your HTML file
-      filename: 'index.html',
+      template: './src/index.html',
+      title: 'Solo Tailor PWA',
     }),
-    new webpack.ProvidePlugin({
-      process: 'process/browser',
-      Buffer: ['buffer', 'Buffer'],
+    new CopyWebpackPlugin({
+      patterns: [
+        { from: 'src/manifest.json', to: 'manifest.json' },
+        { from: 'src/icons', to: 'icons', noErrorOnMissing: true },
+      ],
     }),
-    new webpack.IgnorePlugin({
-      resourceRegExp: /^async_hooks$/, // Ignore async_hooks module
+    new WebpackPwaManifest({
+      name: 'HealthaI',
+      short_name: 'healthaI',
+      description: 'HealthWebApp',
+      background_color: '#ffffff',
+      crossorigin: 'use-credentials',
+      icons: [
+        {
+          src: path.resolve('public/logo192.png'),
+          sizes: [96, 128, 192, 256, 384, 512]
+        }
+      ]
     }),
-    new webpack.ContextReplacementPlugin(
-      /express[\\\/]lib/,
-      false, // Ignore dynamic requires in Express
-    ),
+    new InjectManifest({
+      swSrc: './src/service-worker.js',
+      swDest: 'service-worker.js'
+    }),
+    new WorkboxPlugin.GenerateSW({
+      clientsClaim: true,
+      skipWaiting: true,
+      runtimeCaching: [
+        {
+          urlPattern: /\.(?:png|jpg|jpeg|svg|gif)$/,
+          handler: 'CacheFirst',
+          options: {
+            cacheName: 'images',
+            expiration: {
+              maxEntries: 10,
+            },
+          },
+        },
+        {
+          urlPattern: /\.(?:js|css)$/,
+          handler: 'StaleWhileRevalidate',
+          options: {
+            cacheName: 'static-resources',
+          },
+        },
+      ],
+    }),
   ],
-  mode: 'development', // Set the mode here
-
   devServer: {
-    static: path.join(__dirname, 'dist'), // Updated option
-    compress: true,
-    port: 9000,
+    static: './dist',
+    hot: true,
+    open: true,
+    port: 3000,
   },
-  resolve: {
-    fallback: {
-      "os": require.resolve("os-browserify/browser"), // Polyfill for os
-      "vm": require.resolve("vm-browserify"), // Polyfill for vm
-      "child_process": false, // Exclude child_process in the browser
-      "fs": false, // Exclude fs in the browser
-      "http": require.resolve("stream-http"), // Polyfill for http
-      "https": require.resolve("https-browserify"), // Polyfill for https
-      "net": false, // Exclude net in the browser
-      "tls": false, // Exclude tls in the browser
-      "path": require.resolve("path-browserify"), // Polyfill for path
-      "buffer": require.resolve("buffer/"), // Polyfill for buffer
-      "stream": require.resolve("stream-browserify"), // Polyfill for stream
-      "crypto": require.resolve("crypto-browserify"), // Polyfill for crypto
-      "url": require.resolve("url/"), // Polyfill for url
-      "assert": require.resolve("assert/"), // Polyfill for assert
-      "zlib": require.resolve("browserify-zlib"), // Polyfill for zlib
-      "querystring": require.resolve("querystring-es3"), // Polyfill for querystring
-    }
+  optimization: {
+    moduleIds: 'deterministic',
+    runtimeChunk: 'single',
+    splitChunks: {
+      cacheGroups: {
+        vendor: {
+          test: /[\\/]node_modules[\\/]/,
+          name: 'vendors',
+          chunks: 'all',
+        },
+      },
+    },
   },
 };

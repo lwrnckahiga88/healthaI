@@ -1,14 +1,5 @@
-<#
-.SYNOPSIS
-    Enhanced PWA setup script with comprehensive error handling, PWA compliance, and modern tooling
-.DESCRIPTION
-    Creates a production-ready 3D Shoe Customizer PWA with Three.js integration, service workers,
-    Netlify deployment configuration, and full PWA compliance
-.PARAMETER SkipImageGeneration
-    Skip ImageMagick-dependent operations if tool is unavailable
-.PARAMETER Force
-    Force reinstall of all dependencies
-#>
+
+
 
 param(
     [bool]$SkipImageGeneration = $false,
