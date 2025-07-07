@@ -70,8 +70,8 @@ module.exports = {
       ]
     }),
     new InjectManifest({
-      swSrc: './src/service-worker.js',
-      swDest: 'service-worker.js'
+      swSrc: './src/serviceworker.js',
+      swDest: 'serviceworker.js'
     }),
     new WorkboxPlugin.GenerateSW({
       clientsClaim: true,
