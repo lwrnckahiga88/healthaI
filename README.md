@@ -11,9 +11,9 @@
 
 ---
 
-## 🔍 What is Stone?
+## 🔍 What is juA.kalI?
 
-**Stone** is a robust, AI-powered health diagnostics platform designed to bring smart, predictive medical tools to underserved and remote regions. Built using modern web technologies, the platform runs directly in the browser, offering both online and offline capabilities.
+** juA.kalI** is a robust, AI-powered health diagnostics platform designed to bring smart, predictive medical tools to underserved and remote regions. Built using modern web technologies, the platform runs directly in the browser, offering both online and offline capabilities.
 
 The project is developed by **Jua.Kali Innovations** to democratize healthcare access, enable local data privacy, and empower health workers and first responders with real-time insights.
 
