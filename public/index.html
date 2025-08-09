@@ -413,183 +413,6 @@
       100% { transform: rotate(360deg); }
     }
 
-    /* Gap Analysis Styles */
-    .gap-analysis-container {
-      position: fixed;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      width: 80%;
-      max-width: 800px;
-      background: rgba(42, 42, 42, 0.95);
-      border-radius: 12px;
-      padding: 30px;
-      z-index: 2000;
-      box-shadow: 0 5px 30px rgba(0, 0, 0, 0.5);
-      display: none;
-      backdrop-filter: blur(10px);
-    }
-
-    .gap-analysis-container h2 {
-      color: var(--accent-green);
-      margin-top: 0;
-      text-align: center;
-    }
-
-    .gap-analysis-form {
-      display: flex;
-      flex-direction: column;
-      gap: 20px;
-    }
-
-    .form-group {
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-    }
-
-    .form-group label {
-      font-weight: 500;
-      color: #ccc;
-    }
-
-    .form-group input, .form-group select {
-      padding: 12px;
-      border-radius: 6px;
-      border: 1px solid #444;
-      background-color: #1a1a1a;
-      color: white;
-      font-size: 16px;
-    }
-
-    .form-group textarea {
-      padding: 12px;
-      border-radius: 6px;
-      border: 1px solid #444;
-      background-color: #1a1a1a;
-      color: white;
-      font-size: 16px;
-      min-height: 100px;
-      resize: vertical;
-    }
-
-    .form-actions {
-      display: flex;
-      justify-content: flex-end;
-      gap: 10px;
-      margin-top: 20px;
-    }
-
-    .form-actions button {
-      padding: 10px 20px;
-      border-radius: 6px;
-      cursor: pointer;
-      font-size: 16px;
-      transition: all 0.3s;
-    }
-
-    .analyze-btn {
-      background-color: var(--accent-green);
-      color: white;
-      border: none;
-    }
-
-    .analyze-btn:hover {
-      background-color: #009245;
-    }
-
-    .cancel-btn {
-      background: none;
-      border: 1px solid #666;
-      color: #ccc;
-    }
-
-    .cancel-btn:hover {
-      background-color: #333;
-    }
-
-    .analysis-results {
-      margin-top: 30px;
-      padding: 20px;
-      background: rgba(0, 0, 0, 0.3);
-      border-radius: 8px;
-      display: none;
-    }
-
-    .analysis-results h3 {
-      color: var(--accent-blue);
-      margin-top: 0;
-    }
-
-    .result-item {
-      margin-bottom: 15px;
-      padding-bottom: 15px;
-      border-bottom: 1px solid #444;
-    }
-
-    .result-item:last-child {
-      border-bottom: none;
-      margin-bottom: 0;
-      padding-bottom: 0;
-    }
-
-    .result-title {
-      font-weight: 500;
-      color: #ccc;
-      margin-bottom: 5px;
-    }
-
-    .result-value {
-      color: white;
-    }
-
-    .compliance-status {
-      display: inline-block;
-      padding: 3px 8px;
-      border-radius: 4px;
-      font-size: 14px;
-      font-weight: 500;
-    }
-
-    .compliant {
-      background-color: rgba(0, 200, 83, 0.2);
-      color: var(--accent-green);
-    }
-
-    .non-compliant {
-      background-color: rgba(255, 82, 82, 0.2);
-      color: #FF5252;
-    }
-
-    .partial {
-      background-color: rgba(255, 171, 0, 0.2);
-      color: #FFAB00;
-    }
-
-    .recommendations {
-      margin-top: 20px;
-    }
-
-    .recommendations ul {
-      padding-left: 20px;
-      margin: 10px 0;
-    }
-
-    .recommendations li {
-      margin-bottom: 8px;
-    }
-
-    .close-analysis {
-      position: absolute;
-      top: 15px;
-      right: 15px;
-      background: none;
-      border: none;
-      color: #ccc;
-      font-size: 20px;
-      cursor: pointer;
-    }
-
     @media (max-width: 768px) {
       .chat-box {
         width: 90%;
@@ -622,20 +445,413 @@
       .payment-methods {
         flex-direction: column;
       }
-
-      .gap-analysis-container {
-        width: 95%;
-        padding: 20px;
-      }
     }
   </style>
 </head>
 <body>
+  <!-- Access Control System - MUST be first script in body -->
+<script>
+// Access control system - runs immediately on page load
+(function() {
+    'use strict';
+    
+    // Check if user has valid access
+    function checkAccess() {
+        try {
+            const accessData = JSON.parse(sessionStorage.getItem('healthAppAccess') || '{}');
+            
+            // Check if access exists and hasn't expired
+            if (!accessData.accessToken || !accessData.expiry) {
+                redirectToBilling('No access token found');
+                return false;
+            }
+            
+            if (accessData.expiry < Date.now()) {
+                sessionStorage.removeItem('healthAppAccess');
+                redirectToBilling('Access expired');
+                return false;
+            }
+            
+            // Valid access found - show welcome message
+            console.log(`✅ Access granted - ${accessData.plan} plan active`);
+            showAccessStatus(accessData);
+            return true;
+            
+        } catch (error) {
+            console.error('Access check error:', error);
+            redirectToBilling('Access verification failed');
+            return false;
+        }
+    }
+    
+    // Redirect to billing gate
+    function redirectToBilling(reason) {
+        console.log(`🔒 Redirecting to billing: ${reason}`);
+        
+        // Show a brief loading message before redirect
+        document.body.innerHTML = `
+            <div style="
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                display: flex;
+                flex-direction: column;
+                justify-content: center;
+                align-items: center;
+                color: white;
+                font-family: 'Roboto', sans-serif;
+                z-index: 9999;
+            ">
+                <div style="text-align: center;">
+                    <h2 style="margin-bottom: 20px; font-size: 2rem;">🏥 juA.kali AI Health</h2>
+                    <p style="margin-bottom: 30px; font-size: 1.2rem;">Redirecting to access portal...</p>
+                    <div style="
+                        border: 4px solid rgba(255,255,255,0.3);
+                        border-radius: 50%;
+                        border-top: 4px solid white;
+                        width: 40px;
+                        height: 40px;
+                        animation: spin 1s linear infinite;
+                        margin: 0 auto;
+                    "></div>
+                </div>
+            </div>
+            <style>
+                @keyframes spin {
+                    0% { transform: rotate(0deg); }
+                    100% { transform: rotate(360deg); }
+                }
+            </style>
+        `;
+        
+        // Redirect after short delay
+        setTimeout(() => {
+            window.location.href = 'billing-gate.html';
+        }, 1500);
+    }
+    
+    // Show access status in the UI
+    function showAccessStatus(accessData) {
+        // Add access indicator to the header
+        const statusIndicator = document.createElement('div');
+        statusIndicator.innerHTML = `
+            <div style="
+                position: fixed;
+                top: 60px;
+                left: 30px;
+                background: rgba(0, 200, 83, 0.9);
+                color: white;
+                padding: 8px 15px;
+                border-radius: 20px;
+                font-size: 0.8rem;
+                font-weight: 500;
+                z-index: 999;
+                backdrop-filter: blur(5px);
+            ">
+                ✅ ${accessData.plan.toUpperCase()} Plan Active
+            </div>
+        `;
+        document.body.appendChild(statusIndicator);
+        
+        // Update page title to show plan status
+        document.title = `juA.kali Innovation Platform - ${accessData.plan.toUpperCase()} Access`;
+        
+        // Log access details for debugging
+        const daysRemaining = Math.ceil((accessData.expiry - Date.now()) / (24 * 60 * 60 * 1000));
+        console.log(`📊 Access Details:
+        Plan: ${accessData.plan}
+        Email: ${accessData.email}
+        Days Remaining: ${daysRemaining}
+        Subscribed: ${new Date(accessData.subscribedAt).toLocaleDateString()}`);
+    }
+    
+    // Enhanced access management
+    window.healthAppAccess = {
+        // Check current access status
+        getStatus: function() {
+            try {
+                return JSON.parse(sessionStorage.getItem('healthAppAccess') || '{}');
+            } catch (e) {
+                return {};
+            }
+        },
+        
+        // Upgrade plan (redirect to billing)
+        upgrade: function() {
+            window.location.href = 'billing-gate.html';
+        },
+        
+        // Check if feature is available for current plan
+        hasFeature: function(feature) {
+            const access = this.getStatus();
+            const plan = access.plan || 'free';
+            
+            const planFeatures = {
+                free: ['basic-chat', 'general-health-tips'],
+                pro: ['basic-chat', 'general-health-tips', 'unlimited-consultations', 'symptom-analysis', 'health-plans', 'wearable-integration'],
+                premium: ['basic-chat', 'general-health-tips', 'unlimited-consultations', 'symptom-analysis', 'health-plans', 'wearable-integration', 'video-consultations', 'lab-analysis', 'family-management', 'api-access']
+            };
+            
+            return planFeatures[plan]?.includes(feature) || false;
+        },
+        
+        // Get usage limits for current plan
+        getLimits: function() {
+            const access = this.getStatus();
+            const plan = access.plan || 'free';
+            
+            const planLimits = {
+                free: { apiCalls: 5, consultations: 5, reports: 1 },
+                pro: { apiCalls: 10000, consultations: -1, reports: 10 },
+                premium: { apiCalls: 50000, consultations: -1, reports: -1 }
+            };
+            
+            return planLimits[plan] || planLimits.free;
+        },
+        
+        // Extend access (for promotions, etc.)
+        extend: function(days) {
+            try {
+                const access = this.getStatus();
+                if (access.accessToken) {
+                    access.expiry = Math.max(access.expiry, Date.now()) + (days * 24 * 60 * 60 * 1000);
+                    sessionStorage.setItem('healthAppAccess', JSON.stringify(access));
+                    console.log(`🎁 Access extended by ${days} days`);
+                    return true;
+                }
+            } catch (e) {
+                console.error('Failed to extend access:', e);
+            }
+            return false;
+        },
+        
+        // Clear access (logout)
+        clear: function() {
+            sessionStorage.removeItem('healthAppAccess');
+            window.location.href = 'billing-gate.html';
+        },
+        
+        // Show plan details modal
+        showPlanDetails: function() {
+            const access = this.getStatus();
+            const expiryDate = new Date(access.expiry).toLocaleDateString();
+            const daysRemaining = Math.ceil((access.expiry - Date.now()) / (24 * 60 * 60 * 1000));
+            
+            const modal = document.createElement('div');
+            modal.innerHTML = `
+                <div style="
+                    position: fixed;
+                    top: 0;
+                    left: 0;
+                    width: 100%;
+                    height: 100%;
+                    background: rgba(0, 0, 0, 0.8);
+                    display: flex;
+                    justify-content: center;
+                    align-items: center;
+                    z-index: 10000;
+                    backdrop-filter: blur(5px);
+                ">
+                    <div style="
+                        background: white;
+                        padding: 30px;
+                        border-radius: 15px;
+                        max-width: 400px;
+                        width: 90%;
+                        text-align: center;
+                        color: #333;
+                        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+                    ">
+                        <h2 style="color: #667eea; margin-bottom: 20px;">
+                            🏥 Your Health Plan
+                        </h2>
+                        <div style="background: #f8f9fa; padding: 20px; border-radius: 10px; margin-bottom: 20px;">
+                            <h3 style="color: #333; margin-bottom: 15px;">
+                                ${access.plan.toUpperCase()} PLAN
+                            </h3>
+                            <p><strong>Email:</strong> ${access.email}</p>
+                            <p><strong>Expires:</strong> ${expiryDate}</p>
+                            <p style="color: ${daysRemaining < 7 ? '#ff5252' : '#4caf50'};">
+                                <strong>${daysRemaining} days remaining</strong>
+                            </p>
+                            <p><small>Subscribed: ${new Date(access.subscribedAt).toLocaleDateString()}</small></p>
+                        </div>
+                        <div style="display: flex; gap: 10px; justify-content: center;">
+                            ${access.plan !== 'premium' ? 
+                                '<button onclick="window.healthAppAccess.upgrade()" style="background: #667eea; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer;">Upgrade Plan</button>' : 
+                                '<span style="color: #4caf50;">✨ Premium Member</span>'
+                            }
+                            <button onclick="this.closest(\'div\').parentNode.parentNode.remove()" style="background: #f5f5f5; color: #333; border: 1px solid #ddd; padding: 10px 20px; border-radius: 5px; cursor: pointer;">Close</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(modal);
+        }
+    };
+    
+    // Run access check immediately
+    if (!checkAccess()) {
+        return; // Stop execution if access denied
+    }
+    
+    // Add access-aware navigation enhancements
+    document.addEventListener('DOMContentLoaded', function() {
+        const access = window.healthAppAccess.getStatus();
+        
+        // Add plan-specific features to navigation
+        if (access.plan === 'premium') {
+            addPremiumFeatures();
+        } else if (access.plan === 'pro') {
+            addProFeatures();
+        }
+        
+        // Add usage tracking
+        initializeUsageTracking();
+        
+        // Add plan management option
+        addPlanManagement();
+    });
+    
+    // Add premium-specific UI elements
+    function addPremiumFeatures() {
+        const navMenu = document.querySelector('.nav-menu');
+        if (navMenu) {
+            const premiumBtn = document.createElement('button');
+            premiumBtn.textContent = 'Premium Console';
+            premiumBtn.style.background = 'linear-gradient(45deg, #FFD700, #FFA500)';
+            premiumBtn.style.color = '#000';
+            premiumBtn.onclick = function() {
+                alert('🌟 Premium Console: Advanced features coming soon!');
+            };
+            navMenu.appendChild(premiumBtn);
+        }
+    }
+    
+    // Add pro-specific UI elements
+    function addProFeatures() {
+        const navMenu = document.querySelector('.nav-menu');
+        if (navMenu) {
+            const proBtn = document.createElement('button');
+            proBtn.textContent = 'Pro Analytics';
+            proBtn.style.background = 'rgba(102, 126, 234, 0.2)';
+            proBtn.onclick = function() {
+                alert('📊 Pro Analytics: Feature coming soon!');
+            };
+            navMenu.appendChild(proBtn);
+        }
+    }
+    
+    // Initialize usage tracking
+    function initializeUsageTracking() {
+        const access = window.healthAppAccess.getStatus();
+        
+        // Track API calls and show limits
+        const originalFetch = window.fetch;
+        let apiCallCount = parseInt(localStorage.getItem('apiCallCount_' + access.plan) || '0');
+        
+        window.fetch = function(...args) {
+            // Count API calls to external services
+            const url = args[0];
+            if (typeof url === 'string' && (url.includes('api') || url.includes('llm'))) {
+                apiCallCount++;
+                localStorage.setItem('apiCallCount_' + access.plan, apiCallCount.toString());
+                updateUsageDisplay();
+            }
+            return originalFetch.apply(this, args);
+        };
+        
+        function updateUsageDisplay() {
+            const limits = window.healthAppAccess.getLimits();
+            let usageHtml = '';
+            
+            if (limits.apiCalls !== -1) {
+                const remaining = Math.max(0, limits.apiCalls - apiCallCount);
+                const percentage = ((apiCallCount / limits.apiCalls) * 100).toFixed(1);
+                
+                usageHtml = `
+                    <div style="
+                        position: fixed;
+                        bottom: 20px;
+                        left: 30px;
+                        background: rgba(0, 0, 0, 0.8);
+                        color: white;
+                        padding: 10px 15px;
+                        border-radius: 10px;
+                        font-size: 0.8rem;
+                        z-index: 999;
+                        backdrop-filter: blur(5px);
+                        border: 1px solid rgba(255, 255, 255, 0.1);
+                    ">
+                        📊 API Usage: ${apiCallCount}/${limits.apiCalls} (${percentage}%)
+                        <br>
+                        <small style="color: ${remaining < 10 ? '#ff5252' : '#4caf50'};">
+                            ${remaining} calls remaining
+                        </small>
+                        ${remaining < 5 ? '<br><a href="billing-gate.html" style="color: #ffd700;">Upgrade Plan</a>' : ''}
+                    </div>
+                `;
+            }
+            
+            // Remove existing usage display
+            const existingDisplay = document.getElementById('usage-display');
+            if (existingDisplay) existingDisplay.remove();
+            
+            // Add new usage display
+            if (usageHtml) {
+                const div = document.createElement('div');
+                div.id = 'usage-display';
+                div.innerHTML = usageHtml;
+                document.body.appendChild(div);
+            }
+        }
+        
+        // Initial display
+        updateUsageDisplay();
+    }
+    
+    // Add plan management option
+    function addPlanManagement() {
+        const access = window.healthAppAccess.getStatus();
+        
+        // Add plan info to existing area
+        setTimeout(() => {
+            const planInfo = document.createElement('div');
+            planInfo.innerHTML = `
+                <div style="
+                    position: fixed;
+                    top: 120px;
+                    left: 30px;
+                    background: rgba(0, 0, 0, 0.8);
+                    color: white;
+                    padding: 8px 12px;
+                    border-radius: 15px;
+                    font-size: 0.75rem;
+                    z-index: 999;
+                    backdrop-filter: blur(5px);
+                    border: 1px solid rgba(102, 126, 234, 0.3);
+                    cursor: pointer;
+                " onclick="window.healthAppAccess.showPlanDetails()">
+                    👤 ${access.plan.toUpperCase()} Plan
+                    <br><small style="opacity: 0.8;">Click for details</small>
+                </div>
+            `;
+            document.body.appendChild(planInfo);
+        }, 1000);
+    }
+    
+    console.log('🔐 Access control system initialized');
+    
+})();
+  <script>
   <div class="logo">juA.kali iNC</div>
   <nav class="nav-menu">
     <button id="consultation-tab">Consultation</button>
     <button id="discoveries-tab">Discoveries</button>
-    <button id="courses-tab">Courses</button>
+    <button id="courses-tab">BlackoutML</button>
     <button id="about-us-tab">About Us</button>
     <button id="contact-tab">Contact</button>
   </nav>
@@ -695,108 +911,192 @@
   <!-- Payment Modal Container -->
   <div id="payment-root"></div>
 
-  <!-- Gap Analysis Modal -->
-  <div class="gap-analysis-container" id="gap-analysis-container">
-    <button class="close-analysis" onclick="closeGapAnalysis()">&times;</button>
-    <h2>Clinician Certification Gap Analysis</h2>
-    
-    <div class="gap-analysis-form" id="gap-analysis-form">
-      <div class="form-group">
-        <label for="target-country">Target Country for Certification</label>
-        <select id="target-country">
-          <option value="">Select Country</option>
-          <option value="US">United States</option>
-          <option value="UK">United Kingdom</option>
-          <option value="CA">Canada</option>
-          <option value="AU">Australia</option>
-          <option value="DE">Germany</option>
-          <option value="FR">France</option>
-          <option value="JP">Japan</option>
-          <option value="SG">Singapore</option>
-          <option value="ZA">South Africa</option>
-          <option value="NG">Nigeria</option>
-          <option value="other">Other</option>
-        </select>
-      </div>
-      
-      <div class="form-group">
-        <label for="specialty">Medical Specialty</label>
-        <select id="specialty">
-          <option value="">Select Specialty</option>
-          <option value="family">Family Medicine</option>
-          <option value="internal">Internal Medicine</option>
-          <option value="surgery">General Surgery</option>
-          <option value="pediatrics">Pediatrics</option>
-          <option value="obgyn">Obstetrics & Gynecology</option>
-          <option value="cardiology">Cardiology</option>
-          <option value="neurology">Neurology</option>
-          <option value="psychiatry">Psychiatry</option>
-          <option value="radiology">Radiology</option>
-          <option value="anesthesia">Anesthesiology</option>
-          <option value="other">Other</option>
-        </select>
-      </div>
-      
-      <div class="form-group">
-        <label for="current-credentials">Current Credentials (comma separated)</label>
-        <input type="text" id="current-credentials" placeholder="MD, Board Certified, etc.">
-      </div>
-      
-      <div class="form-group">
-        <label for="additional-info">Additional Information</label>
-        <textarea id="additional-info" placeholder="Any other relevant information about your qualifications, experience, or specific requirements"></textarea>
-      </div>
-      
-      <div class="form-actions">
-        <button class="cancel-btn" onclick="closeGapAnalysis()">Cancel</button>
-        <button class="analyze-btn" onclick="performGapAnalysis()">Analyze</button>
-      </div>
-    </div>
-    
-    <div class="analysis-results" id="analysis-results">
-      <h3>Gap Analysis Results</h3>
-      
-      <div class="result-item">
-        <div class="result-title">Education Requirements</div>
-        <div class="result-value" id="education-result">Loading...</div>
-      </div>
-      
-      <div class="result-item">
-        <div class="result-title">Examination Requirements</div>
-        <div class="result-value" id="examination-result">Loading...</div>
-      </div>
-      
-      <div class="result-item">
-        <div class="result-title">Clinical Experience</div>
-        <div class="result-value" id="experience-result">Loading...</div>
-      </div>
-      
-      <div class="result-item">
-        <div class="result-title">Language Proficiency</div>
-        <div class="result-value" id="language-result">Loading...</div>
-      </div>
-      
-      <div class="result-item">
-        <div class="result-title">Licensing Process</div>
-        <div class="result-value" id="licensing-result">Loading...</div>
-      </div>
-      
-      <div class="result-item">
-        <div class="result-title">Overall Compliance</div>
-        <div class="result-value" id="compliance-result">Loading...</div>
-      </div>
-      
-      <div class="recommendations">
-        <h4>Recommendations</h4>
-        <ul id="recommendations-list">
-          <li>Loading recommendations...</li>
-        </ul>
-      </div>
-    </div>
-  </div>
-
   <!-- Main Application Script -->
-  <script>
+ <script>   
+// Enhanced Payment Modal Component
+        const PaymentModal = () => {
+            const [showModal, setShowModal] = React.useState(false);
+            const [paymentMethod, setPaymentMethod] = React.useState('paystack');
+            const [email, setEmail] = React.useState('');
+            const [loading, setLoading] = React.useState(false);
+            const [paymentSuccess, setPaymentSuccess] = React.useState(false);
+            const [selectedPlan, setSelectedPlan] = React.useState(null);
+            const [amount, setAmount] = React.useState(0);
+
+            React.useEffect(() => {
+                window.showPaymentModal = (plan, price) => {
+                    setSelectedPlan(plan);
+                    setAmount(price);
+                    setShowModal(true);
+                    setPaymentSuccess(false);
+                    setLoading(false);
+                };
+                
+                // Handle any queued payment
+                if (window.pendingPayment) {
+                    const { plan, price } = window.pendingPayment;
+                    setSelectedPlan(plan);
+                    setAmount(price);
+                    setShowModal(true);
+                    setPaymentSuccess(false);
+                    window.pendingPayment = null;
+                }
+            }, []);
+
+            const handlePayment = async () => {
+                if (!email || !email.includes('@')) {
+                    alert('Please enter a valid email address');
+                    return;
+                }
+                
+                setLoading(true);
+                
+                try {
+                    // Simulate payment processing
+                    await new Promise(resolve => setTimeout(resolve, 2500));
+                    setPaymentSuccess(true);
+                    
+                    // Set access token for the main app
+                    const accessData = {
+                        plan: selectedPlan,
+                        accessToken: 'access_' + Date.now(),
+                        expiry: Date.now() + (30 * 24 * 60 * 60 * 1000), // 30 days
+                        email: email,
+                        paymentMethod: paymentMethod,
+                        subscribedAt: new Date().toISOString()
+                    };
+                    
+                    // Store access in sessionStorage (persists across redirects)
+                    sessionStorage.setItem('healthAppAccess', JSON.stringify(accessData));
+                    
+                    // Redirect after 2 seconds
+                    setTimeout(() => {
+                        window.location.href = 'index.html';
+                    }, 2000);
+                    
+                } catch (error) {
+                    alert(`Payment failed: ${error.message}`);
+                    setLoading(false);
+                }
+            };
+
+            if (!showModal) return null;
+
+            return React.createElement('div', { 
+                className: 'payment-modal-overlay',
+                onClick: (e) => e.target.className === 'payment-modal-overlay' && !loading && setShowModal(false)
+            },
+                React.createElement('div', { className: 'payment-modal' },
+                    paymentSuccess ? 
+                        React.createElement('div', { className: 'payment-success' },
+                            React.createElement('div', { className: 'success-icon' }, '🎉'),
+                            React.createElement('h2', null, 'Payment Successful!'),
+                            React.createElement('p', null, `Welcome to the ${selectedPlan} plan!`),
+                            React.createElement('p', null, 'Redirecting to your AI health dashboard...'),
+                            React.createElement('div', { className: 'loader' })
+                        ) :
+                        React.createElement(React.Fragment, null,
+                            React.createElement('h2', null, `Subscribe to ${selectedPlan ? selectedPlan.charAt(0).toUpperCase() + selectedPlan.slice(1) : ''}`),
+                            React.createElement('div', { className: 'plan-price' }, `$${amount}/month`),
+                            React.createElement('p', null, 'Unlock unlimited AI health insights and personalized care'),
+                            
+                            React.createElement('div', { className: 'payment-email' },
+                                React.createElement('label', null, 'Email Address:'),
+                                React.createElement('input', {
+                                    type: 'email',
+                                    value: email,
+                                    onChange: (e) => setEmail(e.target.value),
+                                    placeholder: 'your@email.com',
+                                    required: true,
+                                    disabled: loading
+                                })
+                            ),
+                            
+                            React.createElement('div', { className: 'payment-methods' },
+                                React.createElement('button', {
+                                    className: paymentMethod === 'paystack' ? 'active' : '',
+                                    onClick: () => setPaymentMethod('paystack'),
+                                    disabled: loading
+                                }, '💳 Paystack'),
+                                React.createElement('button', {
+                                    className: paymentMethod === 'stripe' ? 'active' : '',
+                                    onClick: () => setPaymentMethod('stripe'),
+                                    disabled: loading
+                                }, '🌟 Stripe')
+                            ),
+                            
+                            React.createElement('button', {
+                                className: 'pay-button',
+                                onClick: handlePayment,
+                                disabled: loading || !email || !email.includes('@')
+                            }, loading ? '⏳ Processing Payment...' : `💰 Pay $${amount}/month`),
+                            
+                            React.createElement('button', {
+                                className: 'close-button',
+                                onClick: () => !loading && setShowModal(false),
+                                disabled: loading
+                            }, '❌ Cancel')
+                        )
+                )
+            );
+        };
+
+        // Plan selection function
+        function selectPlan(plan, price) {
+            if (plan === 'free') {
+                // Set free access immediately
+                const accessData = {
+                    plan: 'free',
+                    accessToken: 'free_access_' + Date.now(),
+                    expiry: Date.now() + (7 * 24 * 60 * 60 * 1000), // 7 days free trial
+                    email: 'free@user.com',
+                    paymentMethod: 'free',
+                    subscribedAt: new Date().toISOString()
+                };
+                
+                sessionStorage.setItem('healthAppAccess', JSON.stringify(accessData));
+                
+                // Show success message and redirect
+                alert('🎉 Welcome to your free trial! Redirecting to the platform...');
+                setTimeout(() => {
+                    window.location.href = 'index.html';
+                }, 1500);
+                
+            } else {
+                // Show payment modal for paid plans
+                if (typeof window.showPaymentModal === 'function') {
+                    window.showPaymentModal(plan, price);
+                } else {
+                    // Fallback: queue the payment for when modal loads
+                    window.pendingPayment = { plan, price };
+                }
+            }
+        }
+
+        // Initialize when DOM loads
+        document.addEventListener('DOMContentLoaded', () => {
+            // Initialize payment modal
+            const paymentRoot = document.getElementById('payment-root');
+            if (paymentRoot && window.React && window.ReactDOM) {
+                try {
+                    ReactDOM.render(React.createElement(PaymentModal), paymentRoot);
+                } catch (error) {
+                    console.error('Failed to initialize payment modal:', error);
+                }
+            }
+            
+            // Add entrance animations
+            const cards = document.querySelectorAll('.pricing-card');
+            cards.forEach((card, index) => {
+                card.style.animationDelay = `${index * 0.2}s`;
+            });
+            
+            console.log('🚀 juA.kali Billing Gate initialized');
+        });
+
+        // Make selectPlan globally available
+        window.selectPlan = selectPlan;
+
     // Enhanced Configuration Manager with improved storage handling
     class ConfigManager {
       static STORAGE_KEY = 'juakali-ai-config-v4';
@@ -1061,6 +1361,7 @@
       }
     }
 
+
     // Enhanced Local Model Handler with better initialization and fallback
     class LocalModelHandler {
       constructor() {
@@ -1260,7 +1561,6 @@
         }
       }
     }
-
     // Enhanced Mock AI with more realistic responses
     class MockAI {
       constructor() {
@@ -1632,117 +1932,37 @@
 
     function setupEventListeners() {
       // Model selection change
-      const modelSelect = document.getElementById('model-select');
-      if (modelSelect) {
-        modelSelect.addEventListener('change', function() {
-          const modelChoice = this.value;
-          chatManager.config.modelChoice = modelChoice;
-          ConfigManager.save(chatManager.config);
-          chatManager.updateModelStatus();
-          
-          // Auto-initialize local model if selected
-          if (modelChoice === 'local') {
-            chatManager.localModel.initialize().catch(console.warn);
-          }
-        });
-      }
+      document.getElementById('model-select')?.addEventListener('change', function() {
+        const modelChoice = this.value;
+        chatManager.config.modelChoice = modelChoice;
+        ConfigManager.save(chatManager.config);
+        chatManager.updateModelStatus();
+        
+        // Auto-initialize local model if selected
+        if (modelChoice === 'local') {
+          chatManager.localModel.initialize().catch(console.warn);
+        }
+      });
 
       // Send message button
-      const sendButton = document.getElementById('send-message');
-      if (sendButton) {
-        sendButton.addEventListener('click', function() {
-          const input = document.getElementById('chat-input');
-          if (input && input.value.trim()) {
-            chatManager.sendMessage(input.value.trim());
-            input.value = '';
-          }
-        });
-      }
+      document.getElementById('send-message')?.addEventListener('click', function() {
+        const input = document.getElementById('chat-input');
+        if (input?.value.trim()) {
+          chatManager.sendMessage(input.value.trim());
+          input.value = '';
+        }
+      });
 
       // Chat input enter key
-      const chatInput = document.getElementById('chat-input');
-      if (chatInput) {
-        chatInput.addEventListener('keypress', function(e) {
-          if (e.key === 'Enter' && !e.shiftKey) {
-            e.preventDefault();
-            if (this.value.trim()) {
-              chatManager.sendMessage(this.value.trim());
-              this.value = '';
-            }
+      document.getElementById('chat-input')?.addEventListener('keypress', function(e) {
+        if (e.key === 'Enter' && !e.shiftKey) {
+          e.preventDefault();
+          if (this.value.trim()) {
+            chatManager.sendMessage(this.value.trim());
+            this.value = '';
           }
-        });
-      }
-
-      // Explore button
-      const exploreButton = document.getElementById('explore-btn');
-      if (exploreButton) {
-        exploreButton.addEventListener('click', function() {
-          window.location.href = 'secondary.html';
-        });
-      }
-
-      // Discoveries tab
-      const discoveriesTab = document.getElementById('discoveries-tab');
-      if (discoveriesTab) {
-        discoveriesTab.addEventListener('click', function() {
-          window.location.href = 'QuorumDEEP.html';
-        });
-      }
-
-      // Courses tab
-      const coursesTab = document.getElementById('courses-tab');
-      if (coursesTab) {
-        coursesTab.addEventListener('click', function() {
-          window.location.href = 'techskills.html';
-        });
-      }
-
-      // Consultation tab
-      const consultationTab = document.getElementById('consultation-tab');
-      if (consultationTab) {
-        consultationTab.addEventListener('click', function() {
-          window.location.href = 'tertiary.html';
-        });
-      }
-
-      // API settings button
-      const apiSettingsButton = document.querySelector('.model-selector button');
-      if (apiSettingsButton) {
-        apiSettingsButton.addEventListener('click', toggleApiKeyInput);
-      }
-
-      // Save API key button
-      const saveApiKeyButton = document.querySelector('#api-key-container button');
-      if (saveApiKeyButton) {
-        saveApiKeyButton.addEventListener('click', saveApiKey);
-      }
-
-      // Add gap analysis button to nav menu
-      const navMenu = document.querySelector('.nav-menu');
-      if (navMenu) {
-        const gapAnalysisBtn = document.createElement('button');
-        gapAnalysisBtn.textContent = 'Certification Gap Analysis';
-        gapAnalysisBtn.addEventListener('click', openGapAnalysis);
-        navMenu.insertBefore(gapAnalysisBtn, navMenu.children[navMenu.children.length - 1]);
-      }
-
-      // Gap analysis cancel button
-      const gapAnalysisCancelBtn = document.querySelector('.cancel-btn');
-      if (gapAnalysisCancelBtn) {
-        gapAnalysisCancelBtn.addEventListener('click', closeGapAnalysis);
-      }
-
-      // Gap analysis analyze button
-      const gapAnalysisAnalyzeBtn = document.querySelector('.analyze-btn');
-      if (gapAnalysisAnalyzeBtn) {
-        gapAnalysisAnalyzeBtn.addEventListener('click', performGapAnalysis);
-      }
-
-      // Close analysis button
-      const closeAnalysisBtn = document.querySelector('.close-analysis');
-      if (closeAnalysisBtn) {
-        closeAnalysisBtn.addEventListener('click', closeGapAnalysis);
-      }
+        }
+      });
     }
 
     function toggleApiKeyInput() {
@@ -1796,369 +2016,6 @@
       }
     }
 
-    // Gap Analysis Functions
-    function openGapAnalysis() {
-      document.getElementById('gap-analysis-container').style.display = 'block';
-      document.getElementById('gap-analysis-form').style.display = 'flex';
-      document.getElementById('analysis-results').style.display = 'none';
-    }
-
-    function closeGapAnalysis() {
-      document.getElementById('gap-analysis-container').style.display = 'none';
-    }
-
-    async function performGapAnalysis() {
-      const currentCountry = document.getElementById('current-country').value;
-      const targetCountry = document.getElementById('target-country').value;
-      const specialty = document.getElementById('specialty').value;
-      const credentials = document.getElementById('current-credentials').value;
-      const additionalInfo = document.getElementById('additional-info').value;
-      
-      if (!currentCountry || !targetCountry || !specialty) {
-        alert('Please fill in all required fields');
-        return;
-      }
-      
-      // Show loading state
-      document.getElementById('gap-analysis-form').style.display = 'none';
-      const resultsEl = document.getElementById('analysis-results');
-      resultsEl.style.display = 'block';
-      
-      // Set loading text
-      document.querySelectorAll('#analysis-results .result-value').forEach(el => {
-        el.textContent = 'Analyzing...';
-      });
-      
-      // Get country names for display
-      const currentCountryName = document.getElementById('current-country').options[document.getElementById('current-country').selectedIndex].text;
-      const targetCountryName = document.getElementById('target-country').options[document.getElementById('target-country').selectedIndex].text;
-      const specialtyName = document.getElementById('specialty').options[document.getElementById('specialty').selectedIndex].text;
-      
-      try {
-        // In a real implementation, this would call an API or use a sophisticated algorithm
-        // For this demo, we'll simulate the analysis with mock data
-        
-        // Simulate processing time
-        await new Promise(resolve => setTimeout(resolve, 2000));
-        
-        // Generate mock analysis results based on inputs
-        const analysisResults = generateMockAnalysis(
-          currentCountry,
-          targetCountry,
-          specialty,
-          credentials,
-          additionalInfo
-        );
-        
-        // Update UI with results
-        document.getElementById('education-result').innerHTML = analysisResults.education;
-        document.getElementById('examination-result').innerHTML = analysisResults.examination;
-        document.getElementById('experience-result').innerHTML = analysisResults.experience;
-        document.getElementById('language-result').innerHTML = analysisResults.language;
-        document.getElementById('licensing-result').innerHTML = analysisResults.licensing;
-        document.getElementById('compliance-result').innerHTML = analysisResults.compliance;
-        
-        // Update recommendations
-        const recommendationsList = document.getElementById('recommendations-list');
-        recommendationsList.innerHTML = '';
-        analysisResults.recommendations.forEach(rec => {
-          const li = document.createElement('li');
-          li.textContent = rec;
-          recommendationsList.appendChild(li);
-        });
-        
-      } catch (error) {
-        console.error('Gap analysis failed:', error);
-        document.getElementById('education-result').textContent = 'Analysis failed';
-        document.getElementById('examination-result').textContent = 'Analysis failed';
-        document.getElementById('experience-result').textContent = 'Analysis failed';
-        document.getElementById('language-result').textContent = 'Analysis failed';
-        document.getElementById('licensing-result').textContent = 'Analysis failed';
-        document.getElementById('compliance-result').textContent = 'Analysis failed';
-        
-        const recommendationsList = document.getElementById('recommendations-list');
-        recommendationsList.innerHTML = '<li>Failed to complete analysis. Please try again.</li>';
-      }
-    }
-
-    function generateMockAnalysis(currentCountry, targetCountry, specialty, credentials, additionalInfo) {
-      // This is a mock function that would be replaced with real analysis logic
-      // It generates plausible results based on common international medical certification patterns
-      
-      const countryPairs = {
-        'US-UK': { education: 'partial', examination: 'non-compliant', experience: 'compliant', language: 'compliant' },
-        'US-CA': { education: 'compliant', examination: 'partial', experience: 'compliant', language: 'compliant' },
-        'UK-US': { education: 'partial', examination: 'non-compliant', experience: 'compliant', language: 'compliant' },
-        'UK-CA': { education: 'compliant', examination: 'partial', experience: 'compliant', language: 'compliant' },
-        'CA-US': { education: 'compliant', examination: 'non-compliant', experience: 'compliant', language: 'compliant' },
-        'CA-UK': { education: 'compliant', examination: 'partial', experience: 'compliant', language: 'compliant' },
-        'AU-US': { education: 'partial', examination: 'non-compliant', experience: 'compliant', language: 'compliant' },
-        'AU-UK': { education: 'compliant', examination: 'partial', experience: 'compliant', language: 'compliant' },
-        'DE-US': { education: 'partial', examination: 'non-compliant', experience: 'partial', language: 'partial' },
-        'FR-UK': { education: 'partial', examination: 'partial', experience: 'partial', language: 'partial' },
-        'JP-US': { education: 'non-compliant', examination: 'non-compliant', experience: 'partial', language: 'non-compliant' },
-        'SG-UK': { education: 'compliant', examination: 'partial', experience: 'compliant', language: 'compliant' },
-        'ZA-UK': { education: 'partial', examination: 'partial', experience: 'partial', language: 'compliant' },
-        'NG-UK': { education: 'partial', examination: 'partial', experience: 'partial', language: 'compliant' }
-      };
-      
-      // Default to partial compliance if no specific pair found
-      const pairKey = `${currentCountry}-${targetCountry}`;
-      const compliance = countryPairs[pairKey] || {
-        education: 'partial',
-        examination: 'partial',
-        experience: 'partial',
-        language: currentCountry === targetCountry ? 'compliant' : 'partial'
-      };
-      
-      // Generate results based on compliance status
-      const results = {
-        education: generateEducationResult(compliance.education, currentCountry, targetCountry, specialty),
-        examination: generateExaminationResult(compliance.examination, currentCountry, targetCountry, specialty),
-        experience: generateExperienceResult(compliance.experience, currentCountry, targetCountry, specialty, credentials),
-        language: generateLanguageResult(compliance.language, currentCountry, targetCountry),
-        licensing: generateLicensingResult(currentCountry, targetCountry, specialty),
-        compliance: generateComplianceSummary(compliance),
-        recommendations: generateRecommendations(compliance, currentCountry, targetCountry, specialty)
-      };
-      
-      return results;
-    }
-
-    function generateEducationResult(compliance, currentCountry, targetCountry, specialty) {
-      const statusClass = getStatusClass(compliance);
-      const statusText = getStatusText(compliance);
-      
-      let details = '';
-      switch (compliance) {
-        case 'compliant':
-          details = `Your medical education from ${currentCountry} is fully recognized in ${targetCountry} for ${specialty} practice.`;
-          break;
-        case 'partial':
-          details = `Your medical education from ${currentCountry} may require additional coursework or training to meet ${targetCountry} standards for ${specialty}.`;
-          break;
-        case 'non-compliant':
-          details = `Your medical education from ${currentCountry} does not meet the requirements for ${specialty} practice in ${targetCountry}. Additional education will be required.`;
-          break;
-      }
-      
-      return `
-        <span class="compliance-status ${statusClass}">${statusText}</span>
-        <div>${details}</div>
-      `;
-    }
-
-    function generateExaminationResult(compliance, currentCountry, targetCountry, specialty) {
-      const statusClass = getStatusClass(compliance);
-      const statusText = getStatusText(compliance);
-      
-      let details = '';
-      switch (compliance) {
-        case 'compliant':
-          details = `Your professional examinations from ${currentCountry} are fully recognized in ${targetCountry} for ${specialty} practice.`;
-          break;
-        case 'partial':
-          details = `Some of your professional examinations from ${currentCountry} may be recognized in ${targetCountry}, but you will likely need to pass additional exams for ${specialty} practice.`;
-          break;
-        case 'non-compliant':
-          details = `You will need to pass ${targetCountry}'s professional examinations for ${specialty} practice. Your current exams from ${currentCountry} are not recognized.`;
-          break;
-      }
-      
-      return `
-        <span class="compliance-status ${statusClass}">${statusText}</span>
-        <div>${details}</div>
-      `;
-    }
-
-    function generateExperienceResult(compliance, currentCountry, targetCountry, specialty, credentials) {
-      const statusClass = getStatusClass(compliance);
-      const statusText = getStatusText(compliance);
-      
-      let details = '';
-      switch (compliance) {
-        case 'compliant':
-          details = `Your clinical experience in ${currentCountry} meets or exceeds the requirements for ${specialty} practice in ${targetCountry}.`;
-          if (credentials.includes('Board Certified')) {
-            details += ' Your board certification strengthens your application.';
-          }
-          break;
-        case 'partial':
-          details = `Your clinical experience in ${currentCountry} may be partially recognized for ${specialty} practice in ${targetCountry}. Additional supervised practice may be required.`;
-          break;
-        case 'non-compliant':
-          details = `Your clinical experience in ${currentCountry} does not meet the requirements for ${specialty} practice in ${targetCountry}. You will need additional supervised practice.`;
-          break;
-      }
-      
-      return `
-        <span class="compliance-status ${statusClass}">${statusText}</span>
-        <div>${details}</div>
-      `;
-    }
-
-    function generateLanguageResult(compliance, currentCountry, targetCountry) {
-      const statusClass = getStatusClass(compliance);
-      const statusText = getStatusText(compliance);
-      
-      let details = '';
-      if (targetCountry === 'US' || targetCountry === 'UK' || targetCountry === 'CA' || targetCountry === 'AU') {
-        details = `You will need to demonstrate proficiency in English through tests like IELTS or TOEFL.`;
-        if (compliance === 'compliant') {
-          details = `Your language skills appear sufficient for medical practice in ${targetCountry}.`;
-        }
-      } else if (targetCountry === 'DE') {
-        details = `You will need to demonstrate advanced proficiency in German (typically C1 level or higher).`;
-      } else if (targetCountry === 'FR') {
-        details = `You will need to demonstrate advanced proficiency in French (typically B2 level or higher).`;
-      } else if (targetCountry === 'JP') {
-        details = `You will need to demonstrate advanced proficiency in Japanese (typically N1 level).`;
-      } else {
-        details = `Language requirements vary. You should verify the specific language proficiency needed for medical practice in ${targetCountry}.`;
-      }
-      
-      return `
-        <span class="compliance-status ${statusClass}">${statusText}</span>
-        <div>${details}</div>
-      `;
-    }
-
-    function generateLicensingResult(currentCountry, targetCountry, specialty) {
-      // This is a simplified version - real implementation would use actual licensing body data
-      const steps = [];
-      
-      if (targetCountry === 'US') {
-        steps.push('Register with the Educational Commission for Foreign Medical Graduates (ECFMG)');
-        steps.push('Pass USMLE Steps 1, 2CK, and 2CS');
-        steps.push('Complete residency training in the US');
-        steps.push('Pass USMLE Step 3');
-        steps.push('Apply for state medical license');
-      } else if (targetCountry === 'UK') {
-        steps.push('Register with the General Medical Council (GMC)');
-        steps.push('Pass PLAB test (unless exempt)');
-        steps.push('Complete foundation training or equivalent');
-        steps.push('Obtain specialty registration');
-      } else if (targetCountry === 'CA') {
-        steps.push('Apply to the Medical Council of Canada (MCC)');
-        steps.push('Pass MCCQE Part I and Part II');
-        steps.push('Complete residency training in Canada');
-        steps.push('Apply for provincial/territorial license');
-      } else {
-        steps.push(`Contact the medical licensing authority in ${targetCountry}`);
-        steps.push('Submit documentation of your qualifications');
-        steps.push('Complete any required examinations');
-        steps.push('Apply for provisional or full licensure');
-      }
-      
-      return `
-        <div>Key steps for ${targetCountry} licensure:</div>
-        <ol>
-          ${steps.map(step => `<li>${step}</li>`).join('')}
-        </ol>
-      `;
-    }
-
-    function generateComplianceSummary(compliance) {
-      // Calculate overall compliance
-      let compliantCount = 0;
-      let total = 0;
-      
-      for (const key in compliance) {
-        if (compliance[key] === 'compliant') compliantCount++;
-        total++;
-      }
-      
-      const overallCompliance = compliantCount / total;
-      let status, statusClass;
-      
-      if (overallCompliance >= 0.75) {
-        status = 'Highly Compliant';
-        statusClass = 'compliant';
-      } else if (overallCompliance >= 0.5) {
-        status = 'Partially Compliant';
-        statusClass = 'partial';
-      } else if (overallCompliance > 0) {
-        status = 'Minimally Compliant';
-        statusClass = 'partial';
-      } else {
-        status = 'Non-Compliant';
-        statusClass = 'non-compliant';
-      }
-      
-      return `
-        <span class="compliance-status ${statusClass}">${status}</span>
-        <div>${compliantCount} of ${total} key areas meet requirements</div>
-      `;
-    }
-
-    function generateRecommendations(compliance, currentCountry, targetCountry, specialty) {
-      const recommendations = [];
-      
-      // Education recommendations
-      if (compliance.education === 'partial') {
-        recommendations.push(`Consider taking additional coursework to meet ${targetCountry}'s education requirements for ${specialty}.`);
-      } else if (compliance.education === 'non-compliant') {
-        recommendations.push(`You will likely need to complete additional medical education in ${targetCountry} to practice ${specialty}.`);
-      }
-      
-      // Examination recommendations
-      if (compliance.examination === 'partial') {
-        recommendations.push(`Prepare for and take any required supplementary examinations for ${specialty} practice in ${targetCountry}.`);
-      } else if (compliance.examination === 'non-compliant') {
-        recommendations.push(`You will need to pass ${targetCountry}'s full licensing examination sequence for ${specialty}.`);
-      }
-      
-      // Experience recommendations
-      if (compliance.experience === 'partial') {
-        recommendations.push(`Document all your clinical experience thoroughly, as some may count toward ${targetCountry}'s requirements.`);
-      } else if (compliance.experience === 'non-compliant') {
-        recommendations.push(`You will need to complete additional supervised clinical practice in ${targetCountry} to meet requirements.`);
-      }
-      
-      // Language recommendations
-      if (compliance.language === 'partial') {
-        if (targetCountry === 'US' || targetCountry === 'UK' || targetCountry === 'CA' || targetCountry === 'AU') {
-          recommendations.push('Improve your English proficiency and prepare for required language tests (IELTS/OET for UK, TOEFL for US).');
-        } else if (targetCountry === 'DE') {
-          recommendations.push('Achieve at least C1 level proficiency in German and prepare for the Fachsprachprüfung.');
-        } else if (targetCountry === 'FR') {
-          recommendations.push('Achieve at least B2 level proficiency in French.');
-        } else if (targetCountry === 'JP') {
-          recommendations.push('Achieve N1 level proficiency in Japanese.');
-        }
-      } else if (compliance.language === 'non-compliant') {
-        recommendations.push(`You must achieve the required language proficiency level for medical practice in ${targetCountry}.`);
-      }
-      
-      // General recommendations
-      recommendations.push(`Contact the medical licensing authority in ${targetCountry} for the most current requirements.`);
-      recommendations.push(`Consider joining professional associations for ${specialty} in ${targetCountry} to network and learn about the local healthcare system.`);
-      
-      if (currentCountry !== targetCountry) {
-        recommendations.push(`Research cultural differences in medical practice between ${currentCountry} and ${targetCountry}.`);
-      }
-      
-      return recommendations;
-    }
-
-    function getStatusClass(compliance) {
-      switch (compliance) {
-        case 'compliant': return 'compliant';
-        case 'partial': return 'partial';
-        case 'non-compliant': return 'non-compliant';
-        default: return '';
-      }
-    }
-
-    function getStatusText(compliance) {
-      switch (compliance) {
-        case 'compliant': return 'Compliant';
-        case 'partial': return 'Partially Compliant';
-        case 'non-compliant': return 'Non-Compliant';
-        default: return 'Unknown';
-      }
-    }
-
     // Clean up on page unload
     window.addEventListener('beforeunload', function() {
       if (chatManager) {
@@ -2169,21 +2026,100 @@
     // Global functions for UI actions
     window.toggleApiKeyInput = toggleApiKeyInput;
     window.saveApiKey = saveApiKey;
-    window.openGapAnalysis = openGapAnalysis;
-    window.closeGapAnalysis = closeGapAnalysis;
-    window.performGapAnalysis = performGapAnalysis;
+
+      
 
     // Initialize the application when DOM is loaded
     document.addEventListener('DOMContentLoaded', () => {
       console.log('🚀 juA.kali AI Chat starting...');
       
-      // Add gap analysis button to nav menu
-      const navMenu = document.querySelector('.nav-menu');
-      if (navMenu) {
-        const gapAnalysisBtn = document.createElement('button');
-        gapAnalysisBtn.textContent = 'Certification Gap Analysis';
-        gapAnalysisBtn.addEventListener('click', openGapAnalysis);
-        navMenu.insertBefore(gapAnalysisBtn, navMenu.children[navMenu.children.length - 1]);
+      // Navigation event listeners
+      const exploreButton = document.getElementById('explore-btn');
+      if (exploreButton) {
+        exploreButton.addEventListener('click', function () {
+          window.location.href = 'secondary.html';
+        });
+      }
+
+      const discoveriesTab = document.getElementById('discoveries-tab');
+      if (discoveriesTab) {
+        discoveriesTab.addEventListener('click', function () {
+          window.location.href = 'QuorumDEEP.html';
+        });
+      }
+      
+       const coursesTab = document.getElementById('courses-tab');
+  if (coursesTab) {
+    coursesTab.addEventListener('click', function () {
+      window.location.href = 'techskills.html';
+    });
+  }
+  
+  const consultationTab = document.getElementById('consultation-tab');
+  if (consultationTab) {
+    consultationTab.addEventListener('click', function () {
+      window.location.href = 'tertiary.html';
+    });
+  }
+
+  const contactTab = document.getElementById('contact-tab');
+  if (contactTab) {
+    contactTab.addEventListener('click', function () {
+      window.location.href = 'contact.html';
+    });
+  }
+  
+  const aboutUsTab = document.getElementById('about-us-tab');
+if (aboutUsTab) {
+  aboutUsTab.addEventListener('click', function () {
+    window.location.href = 'about.html';
+  });
+}
+
+
+      // Debug: Check for required chat elements
+      const requiredElements = [
+        'chat-container',
+        'chat-form', 
+        'message-input',
+        'send-button'
+      ];
+      
+      const missingElements = requiredElements.filter(id => !document.getElementById(id));
+      
+      if (missingElements.length === 0) {
+        // All required elements found - initialize chat
+        try {
+          window.chatInterface = new ChatInterface();
+          console.log('✅ Chat interface initialized successfully');
+        } catch (error) {
+          console.error('❌ Failed to initialize chat interface:', error);
+          const chatContainer = document.getElementById('chat-container');
+          if (chatContainer) {
+            chatContainer.innerHTML = `
+              <div style="padding: 20px; text-align: center; color: #ff5252;">
+                <h2>Chat Initialization Error</h2>
+                <p>Failed to start the chat interface: ${error.message}</p>
+                <button onclick="location.reload()">Reload Page</button>
+              </div>
+            `;
+          }
+        }
+      } else if (document.getElementById('chat-container')) {
+        // Chat container exists but missing other elements
+        console.warn('⚠️ Chat container found but missing required elements:', missingElements);
+        console.log('💡 Creating minimal chat interface...');
+        
+        try {
+          createMinimalChatInterface();
+          window.chatInterface = new ChatInterface();
+          console.log('✅ Minimal chat interface created and initialized');
+        } catch (error) {
+          console.error('❌ Failed to create minimal chat interface:', error);
+        }
+      } else {
+        // No chat elements found - skip chat initialization
+        console.log('ℹ️ No chat elements found - skipping chat initialization');
       }
     });
 
@@ -2192,9 +2128,12 @@
       ConfigManager,
       APIClient,
       LocalModelHandler,
-      MockAI,
-      ChatManager
+      MockModelHandler,
+      ChatInterface
     };
   </script>
 </body>
 </html>
+
+
+
